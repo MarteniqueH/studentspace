@@ -1,0 +1,98 @@
+.dashboard-container {
+  height: 100vh;
+  width: 100%;
+  background: #ffffff;
+  position: relative;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+/* Canvas */
+.canvas {
+  height: 100vh;
+  width: 100%;
+  position: relative;
+  transition: 0.3s ease;
+}
+
+.canvas.blur {
+  filter: blur(6px);
+}
+
+/* Plus button */
+.add-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: #4f46e5;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+/* Hint text */
+.hint {
+  position: absolute;
+  top: calc(50% + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* Overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Widget panel */
+.widget-panel {
+  width: 520px;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.2);
+}
+
+/* Header */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Input */
+.widget-panel input {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Cards */
+.category {
+  margin-top: 20px;
+}
+
+.card {
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  cursor: pointer;
+}
