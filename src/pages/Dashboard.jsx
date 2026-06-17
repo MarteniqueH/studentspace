@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/dashboard.css";
 
 /* =========================
@@ -44,7 +44,6 @@ function Dashboard() {
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState(null);
   const [placedWidgets, setPlacedWidgets] = useState([]);
-  import { useEffect } from "react";
   const [draggingId, setDraggingId] = useState(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 useEffect(() => {
