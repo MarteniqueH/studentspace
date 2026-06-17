@@ -96,3 +96,38 @@
   background: #f3f4f6;
   cursor: pointer;
 }
+
+.widget-card:hover {
+  transform: translateY(-3px);
+  transition: 0.2s ease;
+  cursor: pointer;
+}
+.widget-card.active {
+  border: 2px solid #4f46e5;
+  background: #eef2ff;
+  transform: scale(1.02);
+}
+
+.add-widget-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: white;
+  cursor: pointer;
+}
+
+.placed-widget {
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  padding: 10px;
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.canvas{
+  position: relative;
+}
