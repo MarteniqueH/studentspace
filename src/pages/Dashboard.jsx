@@ -41,122 +41,194 @@ const categories = [
    DASHBOARD COMPONENT
 ========================= */
 function Dashboard() {
+  /* STATE */
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState(null);
   const [placedWidgets, setPlacedWidgets] = useState([]);
+
+  const [activeWidgetId, setActiveWidgetId] = useState(null);
   const [draggingId, setDraggingId] = useState(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-useEffect(() => {
-    const saved = localStorage.getItem("dashboard-widgets");
-    if (saved) {
-      setPlacedWidgets(JSON.parse(saved));
-    }
-  }, []);
+  const [snapEnabled] = useState(true);
+
+  /* LOAD FROM STORAGE */
   useEffect(() => {
-  localStorage.setItem(
-    "dashboard-widgets",
-    JSON.stringify(placedWidgets)
-  );
-}, [placedWidgets]);
+    const saved = localStorage.getItem("dashboard-widgets");
+    if (saved) setPlacedWidgets(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard-widgets", JSON.stringify(placedWidgets));
+  }, [placedWidgets]);
+
+  /* DELETE WIDGET */
+  const deleteWidget = (id) => {
+    setPlacedWidgets((prev) =>
+      prev.filter((w) => w.instanceId !== id)
+    );
+
+    if (activeWidgetId === id) {
+      setActiveWidgetId(null);
+    }
+  };
 
   return (
     <div className="dashboard-container">
 
       {/* =========================
-          CANVAS (WORKSPACE)
+          CANVAS
       ========================= */}
       <div
         className={`canvas ${openMenu ? "blur" : ""}`}
+
+        /* PLACE WIDGET */
         onClick={(e) => {
-          // Must select a widget first
           if (!selectedWidget) return;
 
           const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
+          let x = e.clientX - rect.left;
+          let y = e.clientY - rect.top;
 
-          // Add widget to canvas at click position
+          // snap
+          if (snapEnabled) {
+            const grid = 20;
+            x = Math.round(x / grid) * grid;
+            y = Math.round(y / grid) * grid;
+          }
+
           setPlacedWidgets([
             ...placedWidgets,
             {
               ...selectedWidget,
               instanceId: crypto.randomUUID(),
               x,
-              y
+              y,
+              size: "medium"
             }
           ]);
 
-          // Reset UI state
           setSelectedWidget(null);
           setOpenMenu(false);
         }}
 
+        /* DRAG MOVE (ONLY SYSTEM) */
         onMouseMove={(e) => {
-  if (!draggingId) return;
+          if (!draggingId) return;
 
-  const rect = e.currentTarget.getBoundingClientRect();
+          const rect = e.currentTarget.getBoundingClientRect();
 
-  const x = e.clientX - rect.left - offset.x;
-  const y = e.clientY - rect.top - offset.y;
+          let x = e.clientX - rect.left - offset.x;
+          let y = e.clientY - rect.top - offset.y;
 
-  setPlacedWidgets((prev) =>
-    prev.map((w) =>
-      w.instanceId === draggingId
-        ? { ...w, x, y }
-        : w
-    )
-  );
-}}
+          if (snapEnabled) {
+            const grid = 20;
+            x = Math.round(x / grid) * grid;
+            y = Math.round(y / grid) * grid;
+          }
 
-onMouseUp={() => {
-  setDraggingId(null);
-}}
+          setPlacedWidgets((prev) =>
+            prev.map((w) =>
+              w.instanceId === draggingId
+                ? { ...w, x, y }
+                : w
+            )
+          );
+        }}
+
+        onMouseUp={() => {
+          setDraggingId(null);
+        }}
       >
 
-        {/* Open widget menu */}
+        {/* OPEN MENU */}
         <div className="add-button" onClick={() => setOpenMenu(true)}>
           +
         </div>
 
-        {/* Render placed widgets */}
+        {/* PLACED WIDGETS */}
         {placedWidgets.map((w) => (
           <div
-  key={w.instanceId}
-  className="placed-widget"
-  style={{
-    position: "absolute",
-    left: `${w.x}px`,
-    top: `${w.y}px`,
-    cursor: "grab"
-  }}
-  onMouseDown={(e) => {
-    e.stopPropagation(); // prevents canvas click
+            key={w.instanceId}
+            className={`placed-widget ${w.size} ${
+              activeWidgetId === w.instanceId ? "active" : ""
+            }`}
+            style={{
+              position: "absolute",
+              left: `${w.x}px`,
+              top: `${w.y}px`
+            }}
 
-    setDraggingId(w.instanceId);
+            /* SELECT + START DRAG */
+            onMouseDown={(e) => {
+              e.stopPropagation();
 
-    const rect = e.currentTarget.getBoundingClientRect();
+              setDraggingId(w.instanceId);
+              setActiveWidgetId(w.instanceId);
 
-    setOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+              const rect = e.currentTarget.getBoundingClientRect();
 
+              setOffset({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+              });
+            }}
+          >
+            <h4>{w.title}</h4>
 
+            {/* DELETE */}
+            {activeWidgetId === w.instanceId && (
+              <div className="widget-toolbar">
+                <button onClick={() => deleteWidget(w.instanceId)}>
+                  Delete
+                </button>
+              </div>
+            )}
 
-    });
-  }}
->
-  {w.title}
-</div>
+            {/* SIZE CONTROLS */}
+            <div className="size-controls">
+              <button onClick={() =>
+                setPlacedWidgets((prev) =>
+                  prev.map((widget) =>
+                    widget.instanceId === w.instanceId
+                      ? { ...widget, size: "small" }
+                      : widget
+                  )
+                )
+              }>S</button>
+
+              <button onClick={() =>
+                setPlacedWidgets((prev) =>
+                  prev.map((widget) =>
+                    widget.instanceId === w.instanceId
+                      ? { ...widget, size: "medium" }
+                      : widget
+                  )
+                )
+              }>M</button>
+
+              <button onClick={() =>
+                setPlacedWidgets((prev) =>
+                  prev.map((widget) =>
+                    widget.instanceId === w.instanceId
+                      ? { ...widget, size: "large" }
+                      : widget
+                  )
+                )
+              }>L</button>
+            </div>
+          </div>
         ))}
 
-        {/* Empty state */}
-        <div className="hint">
-          Add your first widget
-        </div>
+        {/* EMPTY STATE */}
+        {placedWidgets.length === 0 && (
+          <div className="hint">
+            Add your first widget
+          </div>
+        )}
       </div>
 
       {/* =========================
-          WIDGET MENU OVERLAY
+          OVERLAY MENU
       ========================= */}
       {openMenu && (
         <div className="overlay">
@@ -169,7 +241,6 @@ onMouseUp={() => {
 
             <input placeholder="Search widgets..." />
 
-            {/* CATEGORY LIST */}
             {categories.map((category) => (
               <div className="category" key={category}>
                 <h3>{category}</h3>
