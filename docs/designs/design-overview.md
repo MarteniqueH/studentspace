@@ -16,6 +16,6 @@ These designs represent personalized workspace examples that students can build 
 
 These are example configurations and not fixed dashboard layouts. StudentSpace allows students to customize their workspace by adding, removing, resizing, and organizing widgets based on their academic goals.
 
-![CS - Student Custom Workspace](docs/designs/images/CS Student - Workspace .png)
+![CS - Student Custom Workspace](docs/designs/images/cs-student-workspace.png.png)
 
-![Pre-Med Student Custom Workspace](docs/designs/images/Pre-Med Student Workspace.png)
+![Pre-Med Student Custom Workspace](docs/designs/images/premed-student-workspace.png.png)
