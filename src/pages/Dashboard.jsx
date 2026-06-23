@@ -1,95 +1,162 @@
 import { useState, useEffect } from "react";
 import "../styles/dashboard.css";
+import {
+  FiClock,
+  FiCalendar,
+  FiBookOpen,
+  FiEdit3
+} from "react-icons/fi";
 
-/* =========================
-   STATIC WIDGET CATALOG
-========================= */
+import {
+  HiOutlineFolderOpen
+} from "react-icons/hi";
+
+import {
+  BsStars
+} from "react-icons/bs";
+/*
+Static Widget Catalog 
+This array defines all widgets currently available in the widget menu
+
+*/
+
 const widgets = [
   {
     id: 1,
+    icon: <HiOutlineFolderOpen />,
+    title: "Course Folders",
+    description: "Organize notes, files, slides, and class materials.",
+    category: "Study Resources"
+  },
+  {
+    id: 2,
+   icon: <FiCalendar />,
     title: "Calendar",
     description: "Track assignments, exams, and deadlines.",
     category: "Time Management"
   },
   {
-    id: 2,
+    id: 3,
+    icon: <FiClock />,
     title: "Pomodoro Timer",
     description: "Stay focused with structured study sessions.",
     category: "Time Management"
   },
   {
-    id: 3,
+    id: 4,
+    icon: <FiEdit3 />,
     title: "Sticky Notes",
     description: "Capture quick reminders and ideas.",
     category: "Note Taking"
   },
   {
-    id: 4,
+    id: 5,
+     icon: <BsStars />,
     title: "AI Flashcards",
     description: "Generate flashcards from notes and study materials.",
     category: "Active Recall Resources"
   }
 ];
 
+
+/*
+   WIDGET CATEGORIES
+
+   These categories control how widgets are grouped
+   inside the widget menu.
+*/
 const categories = [
+  "Study Resources",
   "Time Management",
   "Note Taking",
   "Active Recall Resources"
 ];
 
-/* =========================
-   DASHBOARD COMPONENT
-========================= */
-function Dashboard() {
-  /* STATE */
+
+function Dashboard()
+/* State */
+{
+  // Controls whether the widget menu overlay is open or closed
   const [openMenu, setOpenMenu] = useState(false);
+
+  // Stores the widget selected from the widget menu before placement
   const [selectedWidget, setSelectedWidget] = useState(null);
+
+  const [noteText, setNoteText] = useState("");
+
+  // Stores all widgets currently placed on the dashboard canvas
   const [placedWidgets, setPlacedWidgets] = useState([]);
 
+
+  // Tracks which placed widget is currently selected on the canvas
   const [activeWidgetId, setActiveWidgetId] = useState(null);
+
+
+  // Tracks which widget is currently being dragged
   const [draggingId, setDraggingId] = useState(null);
+
+ // Stores mouse offset so widgets do not jump while dragging
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+   // Enables snap-to-grid movement
   const [snapEnabled] = useState(true);
 
-  /* LOAD FROM STORAGE */
+
+
+
+  /* 
+     LOCAL STORAGE
+
+     Loads saved dashboard widgets when the page opens.
+ */
+
   useEffect(() => {
     const saved = localStorage.getItem("dashboard-widgets");
     if (saved) setPlacedWidgets(JSON.parse(saved));
   }, []);
 
+
+  /*
+     LOCAL STORAGE
+
+     Saves dashboard widgets whenever placement, size,
+     or position changes.
+ */
+
   useEffect(() => {
     localStorage.setItem("dashboard-widgets", JSON.stringify(placedWidgets));
   }, [placedWidgets]);
 
-  /* DELETE WIDGET */
-  const deleteWidget = (id) => {
-    setPlacedWidgets((prev) =>
-      prev.filter((w) => w.instanceId !== id)
-    );
+   /* 
+     DELETE WIDGET
 
-    if (activeWidgetId === id) {
-      setActiveWidgetId(null);
-    }
+     Removes a widget from the dashboard canvas.
+   */
+
+  const deleteWidget = (id) => {
+    setPlacedWidgets((prev) => prev.filter((w) => w.instanceId !== id));
+    if (activeWidgetId === id) setActiveWidgetId(null);
   };
 
   return (
     <div className="dashboard-container">
-
-      {/* =========================
+      {/* 
           CANVAS
-      ========================= */}
+
+          Main dashboard workspace where widgets are placed,
+          dragged, resized, and managed.
+    */}
       <div
         className={`canvas ${openMenu ? "blur" : ""}`}
-
-        /* PLACE WIDGET */
+          // Place selected widget on the canvas 
+        
         onClick={(e) => {
           if (!selectedWidget) return;
 
           const rect = e.currentTarget.getBoundingClientRect();
           let x = e.clientX - rect.left;
           let y = e.clientY - rect.top;
-
-          // snap
+          // Applies snap - to - grid placement 
           if (snapEnabled) {
             const grid = 20;
             x = Math.round(x / grid) * grid;
@@ -103,23 +170,24 @@ function Dashboard() {
               instanceId: crypto.randomUUID(),
               x,
               y,
-              size: "medium"
+              size: "medium",
+              notes: selectedWidget.title == "Sticky Notes" ? [] : undefined
             }
           ]);
 
           setSelectedWidget(null);
           setOpenMenu(false);
         }}
-
-        /* DRAG MOVE (ONLY SYSTEM) */
+         /* DRAG PLACED WIDGET */
         onMouseMove={(e) => {
           if (!draggingId) return;
 
           const rect = e.currentTarget.getBoundingClientRect();
-
           let x = e.clientX - rect.left - offset.x;
           let y = e.clientY - rect.top - offset.y;
 
+
+          // Apply snap-to-grid movement
           if (snapEnabled) {
             const grid = 20;
             x = Math.round(x / grid) * grid;
@@ -128,24 +196,17 @@ function Dashboard() {
 
           setPlacedWidgets((prev) =>
             prev.map((w) =>
-              w.instanceId === draggingId
-                ? { ...w, x, y }
-                : w
+              w.instanceId === draggingId ? { ...w, x, y } : w
             )
           );
         }}
-
-        onMouseUp={() => {
-          setDraggingId(null);
-        }}
+         /* END DRAG */
+        onMouseUp={() => setDraggingId(null)}
       >
-
-        {/* OPEN MENU */}
         <div className="add-button" onClick={() => setOpenMenu(true)}>
           +
         </div>
-
-        {/* PLACED WIDGETS */}
+ {/* Render widgets that have been placed on the canvas */}
         {placedWidgets.map((w) => (
           <div
             key={w.instanceId}
@@ -157,11 +218,9 @@ function Dashboard() {
               left: `${w.x}px`,
               top: `${w.y}px`
             }}
-
-            /* SELECT + START DRAG */
+              /* SELECT WIDGET AND START DRAG */
             onMouseDown={(e) => {
               e.stopPropagation();
-
               setDraggingId(w.instanceId);
               setActiveWidgetId(w.instanceId);
 
@@ -173,9 +232,63 @@ function Dashboard() {
               });
             }}
           >
-            <h4>{w.title}</h4>
+            <h4>{w.icon} {w.title}</h4>
 
-            {/* DELETE */}
+            {w.title === "Sticky Notes" && (
+  <div className="sticky-notes-content">
+    <textarea
+      placeholder="Type your note..."
+      value={noteText}
+      onChange={(e) => setNoteText(e.target.value)}
+      onMouseDown={(e) => e.stopPropagation()}
+    />
+
+    <button
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+
+        if (!noteText.trim()) return;
+
+        setPlacedWidgets((prev) =>
+          prev.map((widget) =>
+            widget.instanceId === w.instanceId
+              ? {
+                  ...widget,
+                  notes: [
+                    ...(widget.notes || []),
+                    {
+                      id: crypto.randomUUID(),
+                      text: noteText,
+                      color: "#FEF08A"
+                    }
+                  ]
+                }
+              : widget
+          )
+        );
+
+        setNoteText("");
+      }}
+    >
+      Add
+    </button>
+
+    <div className="notes-list">
+      {(w.notes || []).map((note) => (
+        <div
+          key={note.id}
+          className="note-card"
+          style={{ background: note.color }}
+        >
+          {note.text}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+             {/* Widget toolbar appears only when widget is active */}
+
             {activeWidgetId === w.instanceId && (
               <div className="widget-toolbar">
                 <button onClick={() => deleteWidget(w.instanceId)}>
@@ -183,64 +296,120 @@ function Dashboard() {
                 </button>
               </div>
             )}
-
-            {/* SIZE CONTROLS */}
+{/* Size controls for small, medium, and large widget states */}
             <div className="size-controls">
-              <button onClick={() =>
-                setPlacedWidgets((prev) =>
-                  prev.map((widget) =>
-                    widget.instanceId === w.instanceId
-                      ? { ...widget, size: "small" }
-                      : widget
-                  )
-                )
-              }>S</button>
-
-              <button onClick={() =>
-                setPlacedWidgets((prev) =>
-                  prev.map((widget) =>
-                    widget.instanceId === w.instanceId
-                      ? { ...widget, size: "medium" }
-                      : widget
-                  )
-                )
-              }>M</button>
-
-              <button onClick={() =>
-                setPlacedWidgets((prev) =>
-                  prev.map((widget) =>
-                    widget.instanceId === w.instanceId
-                      ? { ...widget, size: "large" }
-                      : widget
-                  )
-                )
-              }>L</button>
+              {["small", "medium", "large"].map((size) => (
+                <button
+                  key={size}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPlacedWidgets((prev) =>
+                      prev.map((widget) =>
+                        widget.instanceId === w.instanceId
+                          ? { ...widget, size }
+                          : widget
+                      )
+                    );
+                  }}
+                >
+                  {size[0].toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
         ))}
-
-        {/* EMPTY STATE */}
+ {/* Empty canvas hint */}
         {placedWidgets.length === 0 && (
-          <div className="hint">
-            Add your first widget
-          </div>
+          <div className="hint">Add your first widget</div>
         )}
       </div>
 
-      {/* =========================
-          OVERLAY MENU
-      ========================= */}
+      {/*
+          WIDGET MENU OVERLAY
+      */}
       {openMenu && (
-        <div className="overlay">
-          <div className="widget-panel">
+      <div className="overlay">
+  <div className="widget-panel">
 
-            <div className="panel-header">
-              <h2>Widgets</h2>
-              <span onClick={() => setOpenMenu(false)}>Close</span>
+    {/* LEFT SIDEBAR */}
+    <div className="widget-sidebar">
+
+      <div className="sidebar-header">
+        <h2>Add Widgets</h2>
+        <p>Browse and add to your dashboard</p>
+      </div>
+
+      <input placeholder="Search widgets..." />
+
+      <div className="sidebar-menu">
+        <button className="sidebar-item active">
+          All Widgets
+        </button>
+
+        <button className="sidebar-item">
+          Time Management
+        </button>
+
+        <button className="sidebar-item">
+          Study Resources
+        </button>
+
+        <button className="sidebar-item">
+          Note Taking
+        </button>
+
+        <button className="sidebar-item">
+          Active Recall
+        </button>
+      </div>
+
+    </div>
+
+   {/* RIGHT CONTENT AREA */}
+<div className="widget-main">
+
+  <div className="main-header">
+    <h3>✨ Based on your goals</h3>
+
+    <span onClick={() => setOpenMenu(false)}>
+      ×
+    </span>
+  </div>
+
+  <div className="category">
+              <h3>✨ Based on your goals</h3>
+ {/* Recommended widget section */}
+              <div className="recommended-list">
+                {widgets.slice(0, 3).map((w) => (
+                  <div
+                    key={w.id}
+                    className={`recommended-card ${
+                      selectedWidget?.id === w.id ? "active" : ""
+                    }`}
+                    onClick={() => setSelectedWidget(w)}
+                  >
+                    <div className="widget-preview">{w.icon}</div>
+
+                    <div className="widget-content">
+                      <h4>{w.title}</h4>
+                      <p>{w.description}</p>
+                    </div>
+
+                    <button
+                      className="quick-add"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedWidget(w);
+                        setOpenMenu(false);
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <input placeholder="Search widgets..." />
-
+        {/* Category-based widget discovery grid */}
             {categories.map((category) => (
               <div className="category" key={category}>
                 <h3>{category}</h3>
@@ -256,15 +425,31 @@ function Dashboard() {
                         }`}
                         onClick={() => setSelectedWidget(w)}
                       >
-                        <h4>{w.title}</h4>
-                        <p>{w.description}</p>
+                        <div className="widget-preview">{w.icon}</div>
+
+                        <div className="widget-content">
+                          <h4>{w.title}</h4>
+                          <p>{w.description}</p>
+                        </div>
+
+                        <button
+                          className="quick-add small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWidget(w);
+                            setOpenMenu(false);
+                          }}
+                        >
+                          +
+                        </button>
                       </div>
                     ))}
+                  
                 </div>
               </div>
             ))}
-
           </div>
+        </div>
         </div>
       )}
     </div>
