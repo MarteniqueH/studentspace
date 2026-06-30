@@ -72,7 +72,7 @@ const categories = [
   "Active Recall Resources"
 ];
 
-
+const noteColors = ["#FEF08A", "#F9A8D4", "#BAE6FD", "#BBF7D0", "#DDD6FE"];
 function Dashboard()
 /* State */
 {
@@ -83,6 +83,9 @@ function Dashboard()
   const [selectedWidget, setSelectedWidget] = useState(null);
 
   const [noteText, setNoteText] = useState("");
+
+  const [selectedNoteColor, setSelectedNoteColor] = useState("#FEF08A");
+
 
   // Stores all widgets currently placed on the dashboard canvas
   const [placedWidgets, setPlacedWidgets] = useState([]);
@@ -100,6 +103,8 @@ function Dashboard()
 
    // Enables snap-to-grid movement
   const [snapEnabled] = useState(true);
+
+ 
 
 
 
@@ -174,6 +179,8 @@ function Dashboard()
               notes: selectedWidget.title == "Sticky Notes" ? [] : undefined
             }
           ]);
+
+          
 
           setSelectedWidget(null);
           setOpenMenu(false);
@@ -260,7 +267,7 @@ function Dashboard()
                     {
                       id: crypto.randomUUID(),
                       text: noteText,
-                      color: "#FEF08A"
+                      color: selectedNoteColor
                     }
                   ]
                 }
@@ -273,18 +280,58 @@ function Dashboard()
     >
       Add
     </button>
+<div className="note-color-row">
+  {noteColors.map((color) => (
+    <button
+      key={color}
+      className={`note-color ${
+        selectedNoteColor === color ? "selected" : ""
+      }`}
+      style={{ background: color }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        setSelectedNoteColor(color);
+      }}
+    />
+  ))}
+</div>
 
-    <div className="notes-list">
-      {(w.notes || []).map((note) => (
-        <div
-          key={note.id}
-          className="note-card"
-          style={{ background: note.color }}
-        >
-          {note.text}
-        </div>
-      ))}
+
+   <div className="notes-list">
+  {(w.notes || []).map((note) => (
+    <div
+      key={note.id}
+      className="note-card"
+      style={{ background: note.color }}
+    >
+      <button
+        className="delete-note-btn"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+
+          setPlacedWidgets((prev) =>
+            prev.map((widget) =>
+              widget.instanceId === w.instanceId
+                ? {
+                    ...widget,
+                    notes: widget.notes.filter(
+                      (n) => n.id !== note.id
+                    )
+                  }
+                : widget
+            )
+          );
+        }}
+      >
+        ×
+      </button>
+
+      {note.text}
     </div>
+  ))}
+</div>
   </div>
 )}
              {/* Widget toolbar appears only when widget is active */}
@@ -410,6 +457,7 @@ function Dashboard()
               </div>
             </div>
         {/* Category-based widget discovery grid */}
+            
             {categories.map((category) => (
               <div className="category" key={category}>
                 <h3>{category}</h3>

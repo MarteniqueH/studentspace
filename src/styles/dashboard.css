@@ -301,15 +301,54 @@
 }
 
 .notes-list {
-  margin-top: 12px;
+   margin-top: 16px;
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .note-card {
-  padding: 10px;
-  border-radius: 12px;
-  font-size: 13px;
-  color: #374151;
+  min-height: 80px;
+  padding: 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  position:relative;
+}
+.note-color-row{
+  display:flex;
+  gap: 8px; 
+  margin-top: 10px;
 }
 
+.note-color {
+  width:20px;
+  height: 20px; 
+  border-radius: 999px;
+  border: 2px solid transparent; 
+  cursor: pointer;
+}
+
+.note-color.selected{
+  border: 2px solid #4f46e5;
+}
+
+.delete-note-btn {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  border: none;
+  background: transparent !important;
+  color: rgba(0,0,0,.35);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.note-card:hover .delete-note-btn {
+  opacity: 1;
+}
+
+.delete-note-btn:hover {
+  color: rgba(0,0,0,.7);
+}
