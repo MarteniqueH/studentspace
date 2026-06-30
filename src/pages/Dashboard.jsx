@@ -85,6 +85,10 @@ function Dashboard()
   const [noteText, setNoteText] = useState("");
 
   const [selectedNoteColor, setSelectedNoteColor] = useState("#FEF08A");
+  
+  
+  const [calendarTitle, setCalendarTitle] = useState("");
+const [calendarDate, setCalendarDate] = useState("");
 
 
   // Stores all widgets currently placed on the dashboard canvas
@@ -103,6 +107,8 @@ function Dashboard()
 
    // Enables snap-to-grid movement
   const [snapEnabled] = useState(true);
+
+  
 
  
 
@@ -176,7 +182,8 @@ function Dashboard()
               x,
               y,
               size: "medium",
-              notes: selectedWidget.title == "Sticky Notes" ? [] : undefined
+              notes: selectedWidget.title == "Sticky Notes" ? [] : undefined, 
+              events: selectedWidget.title == "Calendar" ? [] : undefined
             }
           ]);
 
@@ -332,6 +339,66 @@ function Dashboard()
     </div>
   ))}
 </div>
+  </div>
+)}
+
+{w.title === "Calendar" && (
+  <div className="calendar-widget-content">
+    <input
+      type="text"
+      placeholder="Event or deadline title"
+      value={calendarTitle}
+      onChange={(e) => setCalendarTitle(e.target.value)}
+      onMouseDown={(e) => e.stopPropagation()}
+    />
+
+    <input
+      type="date"
+      value={calendarDate}
+      onChange={(e) => setCalendarDate(e.target.value)}
+      onMouseDown={(e) => e.stopPropagation()}
+    />
+
+    <button
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+
+        if (!calendarTitle.trim() || !calendarDate) return;
+
+        setPlacedWidgets((prev) =>
+          prev.map((widget) =>
+            widget.instanceId === w.instanceId
+              ? {
+                  ...widget,
+                  events: [
+                    ...(widget.events || []),
+                    {
+                      id: crypto.randomUUID(),
+                      title: calendarTitle,
+                      date: calendarDate
+                    }
+                  ]
+                }
+              : widget
+          )
+        );
+
+        setCalendarTitle("");
+        setCalendarDate("");
+      }}
+    >
+      Add Event
+    </button>
+
+    <div className="calendar-events-list">
+      {(w.events || []).map((event) => (
+        <div key={event.id} className="calendar-event-card">
+          <strong>{event.title}</strong>
+          <span>{event.date}</span>
+        </div>
+      ))}
+    </div>
   </div>
 )}
              {/* Widget toolbar appears only when widget is active */}
