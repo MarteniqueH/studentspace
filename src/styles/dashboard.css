@@ -397,3 +397,38 @@
   color: #6b7280;
   font-size: 12px;
 }
+
+/* Pomodoro Timer */
+
+.pomodoro-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 15px;
+}
+
+.pomodoro-time {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.pomodoro-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.pomodoro-controls button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: inherit;
+  background: #4f46e5;
+  color: white;
+}
+
+.pomodoro-controls button:hover {
+  opacity: 0.9;
+}

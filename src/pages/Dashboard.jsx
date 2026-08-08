@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { saveFile, getFile, deleteFile} from "../utils/fileStorage";
 import "../styles/dashboard.css";
 import {
   FiClock,
@@ -94,6 +95,11 @@ const [calendarDate, setCalendarDate] = useState("");
   // Stores all widgets currently placed on the dashboard canvas
   const [placedWidgets, setPlacedWidgets] = useState([]);
 
+  // Pomodoro timer state 
+
+  const [pomodoroTime, setPomodoroTime] = useState(25 * 60);
+const [pomodoroRunning, setPomodoroRunning] = useState(false);
+
 
   // Tracks which placed widget is currently selected on the canvas
   const [activeWidgetId, setActiveWidgetId] = useState(null);
@@ -107,6 +113,11 @@ const [calendarDate, setCalendarDate] = useState("");
 
    // Enables snap-to-grid movement
   const [snapEnabled] = useState(true);
+
+  const [newFolderName, setNewFolderName] = useState(""); 
+  const [activeFolderId, setActiveFolderId] = useState(null); 
+
+
 
   
 
@@ -138,6 +149,23 @@ const [calendarDate, setCalendarDate] = useState("");
     localStorage.setItem("dashboard-widgets", JSON.stringify(placedWidgets));
   }, [placedWidgets]);
 
+
+      //pomodoro countdown 
+      useEffect(() => {
+      if (!pomodoroRunning) return;
+
+      const timer = setInterval(() => {
+      setPomodoroTime((prevTime) => {
+        if (prevTime <= 1) {
+          setPomodoroRunning(false);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+      }, 1000);
+
+      return () => clearInterval(timer);
+      }, [pomodoroRunning]);
    /* 
      DELETE WIDGET
 
@@ -148,7 +176,91 @@ const [calendarDate, setCalendarDate] = useState("");
     setPlacedWidgets((prev) => prev.filter((w) => w.instanceId !== id));
     if (activeWidgetId === id) setActiveWidgetId(null);
   };
+  const formatPomodoroTime = (seconds) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+};
 
+
+const addFolder = (widgetInstanceId, folderName) => {
+  if (!folderName.trim()) return;
+  setPlacedWidgets((prev) =>
+    prev.map((widget) =>
+      widget.instanceId === widgetInstanceId
+        ? {
+            ...widget,
+            folders: [
+              ...(widget.folders || []),
+              { id: crypto.randomUUID(), name: folderName, files: [] }
+            ]
+          }
+        : widget
+    )
+  );
+  setNewFolderName("");
+};
+
+const deleteFolder = (widgetInstanceId, folderId) => {
+  // clean up any stored blobs first
+  const widget = placedWidgets.find((w) => w.instanceId === widgetInstanceId);
+  const folder = widget?.folders?.find((f) => f.id === folderId);
+  folder?.files?.forEach((f) => deleteFile(f.id));
+
+  setPlacedWidgets((prev) =>
+    prev.map((widget) =>
+      widget.instanceId === widgetInstanceId
+        ? { ...widget, folders: widget.folders.filter((f) => f.id !== folderId) }
+        : widget
+    )
+  );
+};
+
+const uploadFilesToFolder = async (widgetInstanceId, folderId, fileList) => {
+  const files = Array.from(fileList);
+  const saved = await Promise.all(files.map((f) => saveFile(f)));
+  const fileMeta = saved.map(({ id, name, type, size }) => ({ id, name, type, size }));
+
+  setPlacedWidgets((prev) =>
+    prev.map((widget) =>
+      widget.instanceId === widgetInstanceId
+        ? {
+            ...widget,
+            folders: widget.folders.map((f) =>
+              f.id === folderId ? { ...f, files: [...f.files, ...fileMeta] } : f
+            )
+          }
+        : widget
+    )
+  );
+};
+
+const removeFileFromFolder = async (widgetInstanceId, folderId, fileId) => {
+  await deleteFile(fileId);
+  setPlacedWidgets((prev) =>
+    prev.map((widget) =>
+      widget.instanceId === widgetInstanceId
+        ? {
+            ...widget,
+            folders: widget.folders.map((f) =>
+              f.id === folderId
+                ? { ...f, files: f.files.filter((file) => file.id !== fileId) }
+                : f
+            )
+          }
+        : widget
+    )
+  );
+};
+
+const openStoredFile = async (fileId) => {
+  const record = await getFile(fileId);
+  if (!record) return;
+  const url = URL.createObjectURL(record.blob);
+  window.open(url, "_blank");
+  // revoke later so it doesn't leak memory
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
   return (
     <div className="dashboard-container">
       {/* 
@@ -342,6 +454,129 @@ const [calendarDate, setCalendarDate] = useState("");
   </div>
 )}
 
+{w.title === "Pomodoro Timer" && (
+  <div className="pomodoro-content">
+    <div className="pomodoro-time">
+      {formatPomodoroTime(pomodoroTime)}
+    </div>
+
+    <div className="pomodoro-controls">
+      <button
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          setPomodoroRunning((prev) => !prev);
+        }}
+      >
+        {pomodoroRunning ? "Pause" : "Start"}
+      </button>
+
+      <button
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          setPomodoroRunning(false);
+          setPomodoroTime(25 * 60);
+        }}
+      >
+        Reset
+      </button>
+    </div>
+  </div>
+)}
+
+{w.title === "Course Folders" && (
+  <div className="course-folders-content">
+    <div className="folder-create-row">
+      <input
+        type="text"
+        placeholder="New course folder (e.g. CS 4200)"
+        value={activeWidgetId === w.instanceId ? newFolderName : newFolderName}
+        onChange={(e) => setNewFolderName(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}
+      />
+      <button
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          addFolder(w.instanceId, newFolderName);
+        }}
+      >
+        + Folder
+      </button>
+    </div>
+
+    <div className="folder-list">
+      {(w.folders || []).map((folder) => (
+        <div key={folder.id} className="course-folder">
+          <div
+            className="folder-header"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveFolderId(activeFolderId === folder.id ? null : folder.id);
+            }}
+          >
+            <span>📁 {folder.name} ({folder.files.length})</span>
+            <button
+              className="delete-folder-btn"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteFolder(w.instanceId, folder.id);
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {activeFolderId === folder.id && (
+            <div className="folder-body">
+              <input
+                type="file"
+                multiple
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  if (e.target.files.length) {
+                    uploadFilesToFolder(w.instanceId, folder.id, e.target.files);
+                    e.target.value = ""; // allow re-uploading same filename
+                  }
+                }}
+              />
+
+              <div className="folder-files-list">
+                {folder.files.map((file) => (
+                  <div key={file.id} className="folder-file-row">
+                    <span
+                      className="file-name"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openStoredFile(file.id);
+                      }}
+                    >
+                      {file.name}
+                    </span>
+                    <button
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFileFromFolder(w.instanceId, folder.id, file.id);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 {w.title === "Calendar" && (
   <div className="calendar-widget-content">
     <input
