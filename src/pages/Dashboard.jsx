@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { saveFile, getFile, deleteFile} from "../utils/fileStorage";
 import "../styles/dashboard.css";
+
 import {
+  
   FiClock,
   FiCalendar,
   FiBookOpen,
-  FiEdit3
+  FiEdit3,
+          
 } from "react-icons/fi";
 
 import {
@@ -424,28 +427,22 @@ const openStoredFile = async (fileId) => {
       className="note-card"
       style={{ background: note.color }}
     >
-      <button
-        className="delete-note-btn"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-
-          setPlacedWidgets((prev) =>
-            prev.map((widget) =>
-              widget.instanceId === w.instanceId
-                ? {
-                    ...widget,
-                    notes: widget.notes.filter(
-                      (n) => n.id !== note.id
-                    )
-                  }
-                : widget
-            )
-          );
-        }}
-      >
-        ×
-      </button>
+     <button
+  className="delete-note-btn"
+  onMouseDown={(e) => e.stopPropagation()}
+  onClick={(e) => {
+    e.stopPropagation();
+    setPlacedWidgets((prev) =>
+      prev.map((widget) =>
+        widget.instanceId === w.instanceId
+          ? { ...widget, notes: widget.notes.filter((n) => n.id !== note.id) }
+          : widget
+      )
+    );
+  }}
+>
+  x
+</button>
 
       {note.text}
     </div>
@@ -517,7 +514,7 @@ const openStoredFile = async (fileId) => {
               setActiveFolderId(activeFolderId === folder.id ? null : folder.id);
             }}
           >
-            <span>📁 {folder.name} ({folder.files.length})</span>
+            <span> {folder.name} ({folder.files.length})</span>
             <button
               className="delete-folder-btn"
               onMouseDown={(e) => e.stopPropagation()}
@@ -526,7 +523,7 @@ const openStoredFile = async (fileId) => {
                 deleteFolder(w.instanceId, folder.id);
               }}
             >
-              ×
+           x
             </button>
           </div>
 

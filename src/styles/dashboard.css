@@ -8,7 +8,7 @@
 
 /* Canvas */
 .canvas {
-  height: 100vh;
+   height: 100vh; 
   width: 100%;
   position: relative;
   transition: 0.3s ease;
@@ -277,6 +277,8 @@
   margin-top: 10px;
 }
 
+
+/*
 .sticky-notes-content textarea {
   width: 100%;
   min-height: 70px;
@@ -352,6 +354,188 @@
 .delete-note-btn:hover {
   color: rgba(0,0,0,.7);
 }
+  */
+
+ /* Sticky Note */
+/* ============ Sticky Notes — visual upgrade ============ */
+
+.sticky-notes-content {
+  margin-top: 10px;
+}
+
+.sticky-notes-content textarea {
+  width: 100%;
+  min-height: 64px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+  background: #fafafa;
+  transition: 0.15s ease;
+}
+
+.sticky-notes-content textarea:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.note-color-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.note-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.note-color:hover {
+  transform: scale(1.15);
+}
+
+.note-color.selected {
+  border: 2px solid #111827;
+  box-shadow: 0 0 0 2px white inset;
+}
+
+.sticky-notes-content button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  margin-left: auto;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 16px;
+  background: #4f46e5;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.sticky-notes-content button:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.notes-list {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.note-card {
+  min-height: 90px;
+  padding: 16px;
+  border-radius: 4px 4px 12px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #292524;
+  position: relative;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 8px 16px rgba(0, 0, 0, 0.08);
+  transform: rotate(var(--tilt, -1deg));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  word-break: break-word;
+}
+
+/* alternate tilt direction for a natural scattered look */
+.notes-list .note-card:nth-child(even) {
+  --tilt: 1.2deg;
+}
+.notes-list .note-card:nth-child(3n) {
+  --tilt: -0.6deg;
+}
+
+.note-card:hover {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 14px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* "pinned tape" accent at the top of each note */
+.note-card::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 34px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 2px;
+}
+
+.delete-note-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: white !important;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: 0.15s ease;
+}
+
+.sticky-notes-content .delete-note-btn {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.sticky-notes-content .delete-note-btn {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.sticky-notes-content .delete-note-btn svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+  width: 12px;
+  height: 12px;
+}
+
+.note-card:hover .delete-note-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.delete-note-btn:hover {
+  color: #dc2626;
+  border-color: #dc2626;
+  transform: scale(1.1);
+}
+
+
+
+
+
+
+ /* Calender */
 .calendar-widget-content {
   margin-top: 10px;
   display: flex;
