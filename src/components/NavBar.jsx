@@ -1,16 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Bell, Pencil, ChevronDown, User } from "lucide-react";
+import { Search, Bell, Pencil, Check, ChevronDown, User } from "lucide-react";
 import "../styles/NavBar.css";
 
-
-
+/**
+ * StudentSpace top navigation bar.
+ *
+ * Left:   logo mark + wordmark, divider, current workspace as a notebook-tab switcher
+ * Center: command/search trigger showing the ⌘K shortcut
+ * Right:  notifications, "Edit Workspace", profile avatar
+ *
+ * Drop it at the top of your app shell:
+ *   <NavBar workspaceName="My Workspace" notificationCount={3} onSearch={...} />
+ */
 export default function NavBar({
   workspaceName = "My Workspace",
   notificationCount = 3,
-  userName = "Martenique Harmon",
+  userName = "Alex Rivera",
   userImageUrl = null,
   onSearch = () => {},
-  onEditWorkspace = () => {},
+  editMode = false,
+  onToggleEditMode = () => {},
   onOpenNotifications = () => {},
   onOpenProfile = () => {},
   onSwitchWorkspace = () => {},
@@ -118,9 +127,22 @@ export default function NavBar({
           )}
         </div>
 
-        <button className="navbar-edit-btn" onClick={onEditWorkspace}>
-          <Pencil size={14} strokeWidth={2} />
-          Edit Workspace
+        <button
+          className={`navbar-edit-btn ${editMode ? "navbar-edit-btn--active" : ""}`}
+          onClick={onToggleEditMode}
+          aria-pressed={editMode}
+        >
+          {editMode ? (
+            <>
+              <Check size={14} strokeWidth={2.5} />
+              Done
+            </>
+          ) : (
+            <>
+              <Pencil size={14} strokeWidth={2} />
+              Edit Workspace
+            </>
+          )}
         </button>
 
         <button className="navbar-avatar" aria-label="Profile" onClick={onOpenProfile}>

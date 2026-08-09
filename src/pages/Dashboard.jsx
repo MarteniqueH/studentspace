@@ -79,7 +79,14 @@ const categories = [
 ];
 
 const noteColors = ["#FEF08A", "#F9A8D4", "#BAE6FD", "#BBF7D0", "#DDD6FE"];
-function Dashboard()
+
+/*
+   Dashboard accepts optional editMode / onEditModeChange props so it can be
+   controlled from a parent (e.g. the top NavBar's "Edit Workspace" / "Done"
+   button). If not provided, it falls back to managing edit mode internally
+   so the component still works standalone.
+*/
+function Dashboard({ editMode: editModeProp, onEditModeChange } = {})
 /* State */
 {
   // Controls whether the widget menu overlay is open or closed
@@ -108,6 +115,23 @@ const [pomodoroRunning, setPomodoroRunning] = useState(false);
 
   // Tracks which placed widget is currently selected on the canvas
   const [activeWidgetId, setActiveWidgetId] = useState(null);
+
+  // Whether the dashboard is in Edit Workspace mode. Can be controlled by a
+  // parent (via editModeProp/onEditModeChange) or managed locally.
+  const [internalEditMode, setInternalEditMode] = useState(false);
+  const editMode = editModeProp !== undefined ? editModeProp : internalEditMode;
+  const setEditMode = onEditModeChange || setInternalEditMode;
+
+  // Tracks the widget that was just added but not yet "confirmed" — its
+  // size/delete controls stay visible until the student clicks elsewhere,
+  // even outside of Edit Workspace mode.
+  const [justPlacedId, setJustPlacedId] = useState(null);
+
+  // A widget's editing controls (size + delete) and drag handle are active
+  // whenever we're in Edit Workspace mode, or the widget was just placed
+  // and hasn't been confirmed/settled yet.
+  const isWidgetEditable = (instanceId) =>
+    editMode || justPlacedId === instanceId;
 
 
   // Tracks which widget is currently being dragged
@@ -154,6 +178,20 @@ const [pomodoroRunning, setPomodoroRunning] = useState(false);
     localStorage.setItem("dashboard-widgets", JSON.stringify(placedWidgets));
   }, [placedWidgets]);
 
+  /*
+     Exiting Edit Workspace mode should return the dashboard to a fully
+     clean state: close the widget menu if it's open, and clear any
+     lingering "just placed" / active selection so no editing controls
+     remain visible.
+  */
+  useEffect(() => {
+    if (!editMode) {
+      setOpenMenu(false);
+      setJustPlacedId(null);
+      setActiveWidgetId(null);
+    }
+  }, [editMode]);
+
 
       //pomodoro countdown 
       useEffect(() => {
@@ -180,6 +218,7 @@ const [pomodoroRunning, setPomodoroRunning] = useState(false);
   const deleteWidget = (id) => {
     setPlacedWidgets((prev) => prev.filter((w) => w.instanceId !== id));
     if (activeWidgetId === id) setActiveWidgetId(null);
+    if (justPlacedId === id) setJustPlacedId(null);
   };
   const formatPomodoroTime = (seconds) => {
   const minutes = Math.floor(seconds / 60);
@@ -275,39 +314,58 @@ const openStoredFile = async (fileId) => {
           dragged, resized, and managed.
     */}
       <div
-        className={`canvas ${openMenu ? "blur" : ""}`}
+        className={`canvas ${openMenu ? "blur" : ""} ${editMode ? "edit-mode" : ""}`}
+        style={
+          editMode
+            ? { outline: "2px dashed #4F46E5", outlineOffset: "-2px" }
+            : undefined
+        }
           // Place selected widget on the canvas 
         
         onClick={(e) => {
-          if (!selectedWidget) return;
+          if (selectedWidget) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            // Applies snap - to - grid placement
+            if (snapEnabled) {
+              const grid = 20;
+              x = Math.round(x / grid) * grid;
+              y = Math.round(y / grid) * grid;
+            }
 
-          const rect = e.currentTarget.getBoundingClientRect();
-          let x = e.clientX - rect.left;
-          let y = e.clientY - rect.top;
-          // Applies snap - to - grid placement 
-          if (snapEnabled) {
-            const grid = 20;
-            x = Math.round(x / grid) * grid;
-            y = Math.round(y / grid) * grid;
+            const newInstanceId = crypto.randomUUID();
+
+            setPlacedWidgets([
+              ...placedWidgets,
+              {
+                ...selectedWidget,
+                instanceId: newInstanceId,
+                x,
+                y,
+                size: "medium",
+                notes: selectedWidget.title == "Sticky Notes" ? [] : undefined,
+                events: selectedWidget.title == "Calendar" ? [] : undefined
+              }
+            ]);
+
+            // Newly placed widgets stay temporarily editable (size + delete
+            // controls visible, draggable) until the student clicks
+            // elsewhere on the canvas to confirm placement.
+            setActiveWidgetId(newInstanceId);
+            setJustPlacedId(newInstanceId);
+
+            setSelectedWidget(null);
+            setOpenMenu(false);
+            return;
           }
 
-          setPlacedWidgets([
-            ...placedWidgets,
-            {
-              ...selectedWidget,
-              instanceId: crypto.randomUUID(),
-              x,
-              y,
-              size: "medium",
-              notes: selectedWidget.title == "Sticky Notes" ? [] : undefined, 
-              events: selectedWidget.title == "Calendar" ? [] : undefined
-            }
-          ]);
-
-          
-
-          setSelectedWidget(null);
-          setOpenMenu(false);
+          // Clicking empty canvas space (not a widget) confirms/settles
+          // whatever widget was just placed, hiding its controls.
+          if (e.target === e.currentTarget) {
+            setActiveWidgetId(null);
+            setJustPlacedId(null);
+          }
         }}
          /* DRAG PLACED WIDGET */
         onMouseMove={(e) => {
@@ -334,9 +392,11 @@ const openStoredFile = async (fileId) => {
          /* END DRAG */
         onMouseUp={() => setDraggingId(null)}
       >
-        <div className="add-button" onClick={() => setOpenMenu(true)}>
-          +
-        </div>
+        {editMode && (
+          <div className="add-button" onClick={() => setOpenMenu(true)}>
+            +
+          </div>
+        )}
  {/* Render widgets that have been placed on the canvas */}
         {placedWidgets.map((w) => (
           <div
@@ -349,11 +409,17 @@ const openStoredFile = async (fileId) => {
               left: `${w.x}px`,
               top: `${w.y}px`
             }}
-              /* SELECT WIDGET AND START DRAG */
+              /* SELECT WIDGET AND, IF EDITABLE, START DRAG */
             onMouseDown={(e) => {
               e.stopPropagation();
-              setDraggingId(w.instanceId);
               setActiveWidgetId(w.instanceId);
+
+              // Outside Edit Workspace mode (and once a newly placed widget
+              // has settled), widgets are not draggable — the student only
+              // interacts with the widget's own content.
+              if (!isWidgetEditable(w.instanceId)) return;
+
+              setDraggingId(w.instanceId);
 
               const rect = e.currentTarget.getBoundingClientRect();
 
@@ -635,40 +701,47 @@ const openStoredFile = async (fileId) => {
     </div>
   </div>
 )}
-             {/* Widget toolbar appears only when widget is active */}
+             {/* Widget toolbar: visible in Edit Workspace mode, or
+                 temporarily right after this widget was placed */}
 
-            {activeWidgetId === w.instanceId && (
+            {isWidgetEditable(w.instanceId) && (
               <div className="widget-toolbar">
                 <button onClick={() => deleteWidget(w.instanceId)}>
                   Delete
                 </button>
               </div>
             )}
-{/* Size controls for small, medium, and large widget states */}
-            <div className="size-controls">
-              {["small", "medium", "large"].map((size) => (
-                <button
-                  key={size}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPlacedWidgets((prev) =>
-                      prev.map((widget) =>
-                        widget.instanceId === w.instanceId
-                          ? { ...widget, size }
-                          : widget
-                      )
-                    );
-                  }}
-                >
-                  {size[0].toUpperCase()}
-                </button>
-              ))}
-            </div>
+{/* Size controls: same visibility rule as the toolbar above — not
+    permanently shown, only during Edit Workspace mode or right after
+    initial placement, until confirmed. */}
+            {isWidgetEditable(w.instanceId) && (
+              <div className="size-controls">
+                {["small", "medium", "large"].map((size) => (
+                  <button
+                    key={size}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPlacedWidgets((prev) =>
+                        prev.map((widget) =>
+                          widget.instanceId === w.instanceId
+                            ? { ...widget, size }
+                            : widget
+                        )
+                      );
+                    }}
+                  >
+                    {size[0].toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
  {/* Empty canvas hint */}
         {placedWidgets.length === 0 && (
-          <div className="hint">Add your first widget</div>
+          <div className="hint">
+            {editMode ? "Add your first widget" : "Enter Edit Workspace to add a widget"}
+          </div>
         )}
       </div>
 
