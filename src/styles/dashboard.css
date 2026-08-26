@@ -137,14 +137,10 @@ body,
   border-radius: 10px;
 }
 
-.placed-widget.small {
-  width: 100px;
-  height: 60px;
-}
 
 .placed-widget.medium {
-  width: 250px;
-  height: 150px;
+  width: 300px;
+  height: 300px;
 }
 
 .placed-widget.large {
@@ -156,7 +152,15 @@ body,
   outline: 2px solid #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
 }
-
+.size-controls  {
+  position: absolute;
+  top: -35px;
+  left: 0;
+  display: flex;
+  gap: 6px;
+   
+ 
+}
 .widget-toolbar {
   position: absolute;
   top: -35px;
