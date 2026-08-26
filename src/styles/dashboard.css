@@ -1,17 +1,32 @@
-.dashboard-container {
-  height: 100vh;
+html,
+body,
+#root {
   width: 100%;
+  min-width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-container {
+  width: 100%;
+  min-width: 100%;
+  height: 100vh;
+  min-height: 100vh;
   background: #ffffff;
   position: relative;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-} 
+  box-sizing: border-box;
+}
 
-/* Canvas */
 .canvas {
-   height: 100vh; 
   width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100vh;
   position: relative;
   transition: 0.3s ease;
+  box-sizing: border-box;
 }
 
 .canvas.blur {
@@ -277,86 +292,6 @@
   margin-top: 10px;
 }
 
-
-/*
-.sticky-notes-content textarea {
-  width: 100%;
-  min-height: 70px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 10px;
-  resize: none;
-  font-family: inherit;
-   box-sizing: border-box;
-}
-
-.sticky-notes-content button {
-   display: block;
-  margin-top: 12px;
-  margin-left: auto;
-  border: none;
-  border-radius: 999px;
-  padding: 6px 14px;
-  background: #4f46e5;
-  color: white;
-  cursor: pointer;
-}
-
-.notes-list {
-   margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.note-card {
-  min-height: 80px;
-  padding: 16px;
-  border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.5;
-  position:relative;
-}
-.note-color-row{
-  display:flex;
-  gap: 8px; 
-  margin-top: 10px;
-}
-
-.note-color {
-  width:20px;
-  height: 20px; 
-  border-radius: 999px;
-  border: 2px solid transparent; 
-  cursor: pointer;
-}
-
-.note-color.selected{
-  border: 2px solid #4f46e5;
-}
-
-.delete-note-btn {
-  position: absolute;
-  top: 0px;
-  right: 0px;
-  border: none;
-  background: transparent !important;
-  color: rgba(0,0,0,.35);
-  font-size: 14px;
-  cursor: pointer;
-  opacity: 0;
-}
-
-.note-card:hover .delete-note-btn {
-  opacity: 1;
-}
-
-.delete-note-btn:hover {
-  color: rgba(0,0,0,.7);
-}
-  */
-
- /* Sticky Note */
 /* ============ Sticky Notes — visual upgrade ============ */
 
 .sticky-notes-content {
@@ -540,47 +475,521 @@
   margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.calendar-widget-content input {
+/* =========================
+   Add event
+   ========================= */
+
+.calendar-add-event {
+  display: grid;
+  grid-template-columns: 1fr 125px;
+  gap: 7px;
+}
+
+.calendar-add-event input {
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
+
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 8px;
+  border-radius: 9px;
+  padding: 8px 9px;
+
+  background: #fafafa;
+  color: #374151;
+
   font-family: inherit;
+  font-size: 11px;
+  outline: none;
+
+  transition: all 0.15s ease;
 }
 
-.calendar-widget-content button {
+.calendar-add-event input:focus {
+  background: white;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.calendar-add-event button {
+  grid-column: 1 / -1;
+
   border: none;
-  border-radius: 999px;
-  padding: 8px 14px;
+  border-radius: 9px;
+  padding: 8px;
+
   background: #4f46e5;
   color: white;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.15s ease;
+}
+
+.calendar-add-event button:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+/* =========================
+   Calendar container
+   ========================= */
+
+.mini-calendar {
+  position: relative;
+
+  padding: 12px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.04);
+}
+
+/* =========================
+   Header
+   ========================= */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 5px;
+}
+
+.calendar-month-title {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.calendar-month-title strong {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.calendar-month-title span {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.calendar-nav-btn {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+  color: #6b7280;
+
+  font-size: 21px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: all 0.15s ease;
+}
+
+.calendar-nav-btn:hover {
+  background: #f1f2ff;
+  color: #4f46e5;
+}
+
+/* =========================
+   Today
+   ========================= */
+
+.calendar-today-btn {
+  display: block;
+
+  margin: 0 auto 10px;
+
+  border: none;
+  background: transparent;
+
+  color: #6366f1;
+
+  font-size: 10px;
+  font-weight: 600;
+
   cursor: pointer;
 }
 
-.calendar-events-list {
-  margin-top: 10px;
-  display: grid;
-  gap: 8px;
+.calendar-today-btn:hover {
+  color: #4338ca;
+  text-decoration: underline;
 }
 
-.calendar-event-card {
-  background: #eef2ff;
-  border-radius: 12px;
-  padding: 10px;
-  font-size: 13px;
+/* =========================
+   Weekdays
+   ========================= */
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-weekdays {
+  margin-bottom: 4px;
+}
+
+.calendar-weekday {
+  text-align: center;
+
+  color: #a1a7b2;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* =========================
+   Days
+   ========================= */
+
+.calendar-day {
+  position: relative;
+
+  min-height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+}
+
+.calendar-day.empty {
+  cursor: default;
+}
+
+.calendar-day-number {
+  position: relative;
+  z-index: 2;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  color: #374151;
+  font-size: 11px;
+
+  transition: all 0.15s ease;
+}
+
+/* Hover */
+
+.calendar-day:not(.empty):hover .calendar-day-number {
+  background: #f1f2ff;
+  color: #4f46e5;
+}
+
+/* Today */
+
+.calendar-day.today .calendar-day-number {
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+.calendar-day.today .calendar-day-number::before {
+  content: "";
+
+  position: absolute;
+  inset: 1px;
+
+  border: 1px solid #818cf8;
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+/* =========================
+   EVENT DATE
+   ========================= */
+
+/*
+  This is the "hollow circle" effect.
+*/
+
+.calendar-day.has-events .calendar-day-number {
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+.calendar-day.has-events .calendar-day-number::before {
+  content: "";
+
+  position: absolute;
+  inset: 1px;
+
+  border: 1.5px solid #6366f1;
+  border-radius: 50%;
+
+  background: transparent;
+
+  transition: all 0.15s ease;
+}
+
+.calendar-day.has-events:hover .calendar-day-number::before {
+  border-color: #4338ca;
+  background: rgba(99, 102, 241, 0.06);
+}
+
+/* Selected date */
+
+.calendar-day.selected .calendar-day-number {
+  background: #4f46e5;
+  color: white;
+}
+
+.calendar-day.selected .calendar-day-number::before {
+  border-color: #4f46e5;
+}
+
+.calendar-day.selected .calendar-event-dot {
+  background: white;
+}
+
+/* Event dot */
+
+.calendar-event-dot {
+  position: absolute;
+
+  bottom: 2px;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #6366f1;
+
+  z-index: 3;
+}
+
+/* =========================
+   Hover tooltip
+   ========================= */
+
+.calendar-event-tooltip {
+  position: absolute;
+
+  z-index: 50;
+
+  left: 50%;
+  bottom: calc(100% + 6px);
+
+  transform: translateX(-50%);
+
+  min-width: 145px;
+  max-width: 210px;
+
+  padding: 9px 10px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+
+  background: white;
+
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.06);
+
+  pointer-events: none;
+
+  animation: calendarTooltipIn 0.12s ease;
+}
+
+@keyframes calendarTooltipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.tooltip-date {
+  margin-bottom: 6px;
+
+  color: #9ca3af;
+
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tooltip-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  padding: 3px 0;
+
+  color: #374151;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.tooltip-event-dot {
+  width: 5px;
+  height: 5px;
+
+  margin-top: 3px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+  background: #6366f1;
+}
+
+/* =========================
+   Selected date events
+   ========================= */
+
+.selected-date-events {
+  margin-top: 10px;
+  padding-top: 10px;
+
+  border-top: 1px solid #eef0f3;
+}
+
+.selected-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 8px;
+}
+
+.selected-date-header > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.calendar-event-card span {
-  color: #6b7280;
-  font-size: 12px;
+.selected-date-label {
+  color: #9ca3af;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
+
+.selected-date-header strong {
+  color: #374151;
+  font-size: 11px;
+}
+
+.selected-date-header button {
+  width: 24px;
+  height: 24px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: #9ca3af;
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+.selected-date-header button:hover {
+  background: #f3f4f6;
+  color: #ef4444;
+}
+
+.selected-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.selected-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px;
+
+  border-radius: 8px;
+
+  background: #f5f6ff;
+}
+
+.selected-event-dot {
+  width: 6px;
+  height: 6px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+  background: #6366f1;
+}
+
+.selected-event-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selected-event-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #374151;
+  font-size: 10px;
+}
+
+.selected-event-info span {
+  color: #9ca3af;
+  font-size: 9px;
+}
+
+.no-events-message {
+  padding: 9px;
+
+  border-radius: 8px;
+
+  background: #f9fafb;
+
+  color: #9ca3af;
+
+  text-align: center;
+  font-size: 10px;
+}
+
 
 /* Pomodoro Timer */
 
@@ -924,4 +1333,509 @@
   background: white;
   font-size: 12px;
   cursor: pointer;
+}
+
+
+.course-folders-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px;
+}
+
+/* =========================
+   Create folder
+   ========================= */
+
+.folder-create-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.folder-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.folder-input-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px 0 38px;
+
+  border: 1px solid #dfe3ea;
+  border-radius: 10px;
+  background: #f8f9fb;
+
+  color: #1f2937;
+  font-size: 13px;
+
+  outline: none;
+  transition: all 0.18s ease;
+}
+
+.folder-input-wrapper input::placeholder {
+  color: #9ca3af;
+}
+
+.folder-input-wrapper input:focus {
+  background: #fff;
+  border-color: #7c8cff;
+  box-shadow: 0 0 0 3px rgba(124, 140, 255, 0.12);
+}
+
+.folder-input-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.create-folder-btn {
+  height: 40px;
+  padding: 0 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #5967e8;
+  color: white;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.create-folder-btn span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.create-folder-btn:hover {
+  background: #4b59d7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(89, 103, 232, 0.25);
+}
+
+.create-folder-btn:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   Folder list
+   ========================= */
+
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.course-folder {
+  overflow: hidden;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.course-folder:hover {
+  border-color: #d5d9e2;
+  box-shadow: 0 3px 12px rgba(20, 30, 50, 0.06);
+}
+
+.course-folder.folder-open {
+  border-color: #cbd1ff;
+  box-shadow: 0 4px 16px rgba(89, 103, 232, 0.08);
+}
+
+/* =========================
+   Folder header
+   ========================= */
+
+.folder-header {
+  min-height: 58px;
+  padding: 0 10px 0 13px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.folder-info {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.folder-icon {
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+  background: #f1f3ff;
+
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.folder-open .folder-icon {
+  background: #e9ebff;
+}
+
+.folder-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #202534;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.folder-count {
+  color: #9aa1af;
+  font-size: 11px;
+}
+
+.folder-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.folder-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 25px;
+  height: 25px;
+
+  color: #9ca3af;
+  font-size: 22px;
+
+  transition: transform 0.2s ease;
+}
+
+.folder-chevron.open {
+  transform: rotate(90deg);
+  color: #5967e8;
+}
+
+.delete-folder-btn,
+.remove-file-btn {
+  border: none;
+  background: transparent;
+
+  color: #b0b5bf;
+  cursor: pointer;
+
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.folder-header:hover .delete-folder-btn {
+  opacity: 1;
+}
+
+.delete-folder-btn {
+  width: 28px;
+  height: 28px;
+
+  border-radius: 7px;
+
+  font-size: 17px;
+  line-height: 1;
+}
+
+.delete-folder-btn:hover {
+  background: #fff0f0;
+  color: #ef4444;
+}
+
+/* =========================
+   Folder body
+   ========================= */
+
+.folder-body {
+  padding: 0 12px 12px;
+  border-top: 1px solid #f0f1f4;
+
+  animation: folderOpen 0.18s ease;
+}
+
+@keyframes folderOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================
+   Upload area
+   ========================= */
+
+.folder-upload-area {
+  margin-top: 12px;
+  min-height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+
+  border: 1.5px dashed #cdd2e0;
+  border-radius: 10px;
+
+  background: #fafbff;
+
+  cursor: pointer;
+
+  transition: all 0.18s ease;
+}
+
+.folder-upload-area:hover {
+  border-color: #7c8cff;
+  background: #f6f7ff;
+}
+
+.folder-upload-area input {
+  display: none;
+}
+
+.upload-icon {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: #e9ebff;
+  color: #5967e8;
+
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.upload-text strong {
+  color: #4b5563;
+  font-size: 12px;
+}
+
+.upload-text span {
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+/* =========================
+   Files
+   ========================= */
+
+.folder-files-list {
+  margin-top: 14px;
+}
+
+.files-section-label {
+  margin: 0 2px 7px;
+
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.folder-file-row {
+  min-height: 46px;
+  padding: 5px 6px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-radius: 8px;
+
+  transition: background 0.15s ease;
+}
+
+.folder-file-row:hover {
+  background: #f7f8fa;
+}
+
+.file-main {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  cursor: pointer;
+}
+
+.file-icon {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 7px;
+  background: #f1f2f5;
+
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.file-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-name {
+  max-width: 220px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #374151;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.file-action-hint {
+  color: #a0a6b1;
+  font-size: 9px;
+}
+
+.folder-file-row:hover .file-name {
+  color: #5967e8;
+}
+
+.remove-file-btn {
+  width: 27px;
+  height: 27px;
+
+  border-radius: 7px;
+
+  font-size: 16px;
+}
+
+.folder-file-row:hover .remove-file-btn {
+  opacity: 1;
+}
+
+.remove-file-btn:hover {
+  background: #fff0f0;
+  color: #ef4444;
+}
+
+/* =========================
+   Empty states
+   ========================= */
+
+.empty-folders {
+  padding: 32px 16px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  border: 1px dashed #dfe2e8;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.empty-folder-icon {
+  margin-bottom: 9px;
+  font-size: 28px;
+  opacity: 0.65;
+}
+
+.empty-folder-title {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.empty-folder-subtitle {
+  max-width: 220px;
+  margin-top: 4px;
+
+  color: #9ca3af;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.empty-folder-files {
+  padding: 20px 10px 8px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  color: #a1a7b2;
+}
+
+.empty-folder-files span {
+  font-size: 20px;
+  opacity: 0.6;
+}
+
+.empty-folder-files p {
+  margin: 5px 0 0;
+  font-size: 10px;
 }
