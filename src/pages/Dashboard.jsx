@@ -80,6 +80,10 @@ const categories = [
 
 const noteColors = ["#FEF08A", "#F9A8D4", "#BAE6FD", "#BBF7D0", "#DDD6FE"];
 
+// Backend URL for the AI Notes / Flashcard & Quiz Generator. Override with
+// VITE_API_BASE_URL in your .env for a deployed backend.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 /*
    Dashboard accepts optional editMode / onEditModeChange props so it can be
    controlled from a parent (e.g. the top NavBar's "Edit Workspace" / "Done"
@@ -145,6 +149,24 @@ const [pomodoroRunning, setPomodoroRunning] = useState(false);
 
   const [newFolderName, setNewFolderName] = useState(""); 
   const [activeFolderId, setActiveFolderId] = useState(null); 
+
+  // Transient, per-widget-instance UI state for the AI Notes / Flashcard &
+  // Quiz Generator widget (draft text, selected file, loading/error, and
+  // in-progress flashcard/quiz navigation). Keyed by instanceId so multiple
+  // AI Flashcards widgets on the canvas don't interfere with each other.
+  // Generated results themselves (w.studyMaterial) are persisted on the
+  // widget and saved to localStorage like everything else; this state is
+  // not persisted and resets on reload.
+  const [aiWidgetState, setAiWidgetState] = useState({});
+
+  const getAiState = (instanceId) => aiWidgetState[instanceId] || {};
+
+  const updateAiState = (instanceId, patch) => {
+    setAiWidgetState((prev) => ({
+      ...prev,
+      [instanceId]: { ...prev[instanceId], ...patch },
+    }));
+  };
 
 
 
@@ -294,6 +316,238 @@ const removeFileFromFolder = async (widgetInstanceId, folderId, fileId) => {
           }
         : widget
     )
+  );
+};
+
+/*
+   AI NOTES / FLASHCARD & QUIZ GENERATOR
+
+   Sends whatever the student provided (pasted text or an uploaded
+   PDF/.txt file) to the backend, which extracts the text and calls the
+   AI model to produce flashcards + a quiz. The result is stored on the
+   widget itself so it persists like any other widget content.
+*/
+
+const handleGenerateStudyMaterial = async (instanceId) => {
+  const state = getAiState(instanceId);
+
+  if (!state.file && !(state.draftText || "").trim()) {
+    updateAiState(instanceId, { error: "Paste some notes or choose a file first." });
+    return;
+  }
+
+  updateAiState(instanceId, { loading: true, error: null });
+
+  try {
+    const formData = new FormData();
+    if (state.file) formData.append("file", state.file);
+    if (state.draftText) formData.append("text", state.draftText);
+
+    const response = await fetch(`${API_BASE}/api/generate-study-material`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Generation failed. Try again.");
+    }
+
+    setPlacedWidgets((prev) =>
+      prev.map((widget) =>
+        widget.instanceId === instanceId
+          ? {
+              ...widget,
+              studyMaterial: data,
+              sourceFileName: state.file ? state.file.name : "Pasted notes",
+            }
+          : widget
+      )
+    );
+
+    updateAiState(instanceId, {
+      loading: false,
+      error: null,
+      file: null,
+      draftText: "",
+      activeTab: "flashcards",
+      flashcardIndex: 0,
+      flashcardFlipped: false,
+      quizIndex: 0,
+      quizSelections: {},
+    });
+  } catch (err) {
+    updateAiState(instanceId, {
+      loading: false,
+      error: err.message || "Something went wrong generating study material.",
+    });
+  }
+};
+
+const clearStudyMaterial = (instanceId) => {
+  setPlacedWidgets((prev) =>
+    prev.map((widget) =>
+      widget.instanceId === instanceId
+        ? { ...widget, studyMaterial: null, sourceFileName: null }
+        : widget
+    )
+  );
+  updateAiState(instanceId, {
+    file: null,
+    draftText: "",
+    error: null,
+    flashcardIndex: 0,
+    flashcardFlipped: false,
+    quizIndex: 0,
+    quizSelections: {},
+  });
+};
+
+const renderFlashcards = (w) => {
+  const cards = w.studyMaterial?.flashcards || [];
+  const state = getAiState(w.instanceId);
+  const index = Math.min(state.flashcardIndex || 0, Math.max(cards.length - 1, 0));
+  const flipped = !!state.flashcardFlipped;
+  const card = cards[index];
+
+  if (!card) return <p className="ai-notes-empty">No flashcards were generated.</p>;
+
+  return (
+    <div className="flashcard-viewer">
+      <div
+        className={`flashcard ${flipped ? "flipped" : ""}`}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          updateAiState(w.instanceId, { flashcardFlipped: !flipped });
+        }}
+      >
+        <span className="flashcard-label">{flipped ? "Answer" : "Question"}</span>
+        <p>{flipped ? card.back : card.front}</p>
+        <span className="flashcard-hint">Tap to flip</span>
+      </div>
+
+      <div className="flashcard-nav">
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            updateAiState(w.instanceId, {
+              flashcardIndex: Math.max(0, index - 1),
+              flashcardFlipped: false,
+            });
+          }}
+          disabled={index === 0}
+        >
+          ←
+        </button>
+        <span>
+          {index + 1} / {cards.length}
+        </span>
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            updateAiState(w.instanceId, {
+              flashcardIndex: Math.min(cards.length - 1, index + 1),
+              flashcardFlipped: false,
+            });
+          }}
+          disabled={index === cards.length - 1}
+        >
+          →
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const renderQuiz = (w) => {
+  const questions = w.studyMaterial?.quiz || [];
+  const state = getAiState(w.instanceId);
+  const index = state.quizIndex || 0;
+  const selections = state.quizSelections || {};
+  const question = questions[index];
+  const finished = index >= questions.length && questions.length > 0;
+
+  if (finished) {
+    const correctCount = questions.filter(
+      (q) => selections[q.id] === q.correctOptionId
+    ).length;
+
+    return (
+      <div className="quiz-complete">
+        <p>
+          You scored {correctCount} / {questions.length}
+        </p>
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            updateAiState(w.instanceId, { quizIndex: 0, quizSelections: {} });
+          }}
+        >
+          Retake Quiz
+        </button>
+      </div>
+    );
+  }
+
+  if (!question) return <p className="ai-notes-empty">No quiz questions were generated.</p>;
+
+  const selectedOptionId = selections[question.id];
+
+  return (
+    <div className="quiz-viewer">
+      <p className="quiz-progress">
+        Question {index + 1} of {questions.length}
+      </p>
+      <p className="quiz-question">{question.question}</p>
+
+      <div className="quiz-options">
+        {question.options.map((opt) => {
+          const isSelected = selectedOptionId === opt.id;
+          const showResult = !!selectedOptionId;
+          const isCorrect = opt.id === question.correctOptionId;
+
+          return (
+            <button
+              key={opt.id}
+              className={`quiz-option ${isSelected ? "selected" : ""} ${
+                showResult && isCorrect ? "correct" : ""
+              } ${showResult && isSelected && !isCorrect ? "incorrect" : ""}`}
+              disabled={!!selectedOptionId}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAiState(w.instanceId, {
+                  quizSelections: { ...selections, [question.id]: opt.id },
+                });
+              }}
+            >
+              {opt.text}
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedOptionId && (
+        <>
+          <p className="quiz-explanation">{question.explanation}</p>
+          <button
+            className="quiz-next-btn"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateAiState(w.instanceId, { quizIndex: index + 1 });
+            }}
+          >
+            {index + 1 === questions.length ? "See Results" : "Next Question"}
+          </button>
+        </>
+      )}
+    </div>
   );
 };
 
@@ -699,6 +953,90 @@ const openStoredFile = async (fileId) => {
         </div>
       ))}
     </div>
+  </div>
+)}
+{w.title === "AI Flashcards" && (
+  <div className="ai-notes-content">
+    {!w.studyMaterial ? (
+      <div className="ai-notes-upload">
+        <textarea
+          placeholder="Paste your notes here, or upload a PDF/.txt file below..."
+          value={getAiState(w.instanceId).draftText || ""}
+          onChange={(e) => updateAiState(w.instanceId, { draftText: e.target.value })}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
+
+        <label className="ai-notes-file-label" onMouseDown={(e) => e.stopPropagation()}>
+          <span>{getAiState(w.instanceId).file ? getAiState(w.instanceId).file.name : "Choose PDF or .txt file"}</span>
+          <input
+            type="file"
+            accept=".pdf,.txt,text/plain,application/pdf"
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const file = e.target.files[0] || null;
+              updateAiState(w.instanceId, { file, error: null });
+            }}
+          />
+        </label>
+
+        {getAiState(w.instanceId).error && (
+          <p className="ai-notes-error">{getAiState(w.instanceId).error}</p>
+        )}
+
+        <button
+          className="ai-notes-generate-btn"
+          disabled={getAiState(w.instanceId).loading}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleGenerateStudyMaterial(w.instanceId);
+          }}
+        >
+          {getAiState(w.instanceId).loading ? "Generating..." : "Generate Flashcards & Quiz"}
+        </button>
+      </div>
+    ) : (
+      <div className="ai-notes-results">
+        <div className="ai-notes-results-header">
+          <span className="ai-notes-source">{w.sourceFileName}</span>
+          <button
+            className="ai-notes-reset-btn"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              clearStudyMaterial(w.instanceId);
+            }}
+          >
+            Upload New Material
+          </button>
+        </div>
+
+        <div className="ai-notes-tabs">
+          <button
+            className={`ai-notes-tab ${getAiState(w.instanceId).activeTab !== "quiz" ? "active" : ""}`}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateAiState(w.instanceId, { activeTab: "flashcards" });
+            }}
+          >
+            Flashcards ({(w.studyMaterial.flashcards || []).length})
+          </button>
+          <button
+            className={`ai-notes-tab ${getAiState(w.instanceId).activeTab === "quiz" ? "active" : ""}`}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateAiState(w.instanceId, { activeTab: "quiz" });
+            }}
+          >
+            Quiz ({(w.studyMaterial.quiz || []).length})
+          </button>
+        </div>
+
+        {getAiState(w.instanceId).activeTab === "quiz" ? renderQuiz(w) : renderFlashcards(w)}
+      </div>
+    )}
   </div>
 )}
              {/* Widget toolbar: visible in Edit Workspace mode, or
