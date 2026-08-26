@@ -141,6 +141,11 @@ const [pomodoroRunning, setPomodoroRunning] = useState(false);
   // Tracks which widget is currently being dragged
   const [draggingId, setDraggingId] = useState(null);
 
+const [calendarViewDate, setCalendarViewDate] = useState(new Date());
+const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
+const [hoveredCalendarDate, setHoveredCalendarDate] = useState(null);
+
+
  // Stores mouse offset so widgets do not jump while dragging
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
@@ -550,6 +555,44 @@ const renderQuiz = (w) => {
     </div>
   );
 };
+const formatCalendarDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getCalendarEventsForDate = (events, date) => {
+  const dateKey = formatCalendarDate(date);
+
+  return (events || []).filter(
+    (event) => event.date === dateKey
+  );
+};
+
+const changeCalendarMonth = (amount) => {
+  setCalendarViewDate((current) => {
+    return new Date(
+      current.getFullYear(),
+      current.getMonth() + amount,
+      1
+    );
+  });
+
+  setSelectedCalendarDate(null);
+  setHoveredCalendarDate(null);
+};
+
+const goToCalendarToday = () => {
+  const now = new Date();
+
+  setCalendarViewDate(
+    new Date(now.getFullYear(), now.getMonth(), 1)
+  );
+
+  setSelectedCalendarDate(formatCalendarDate(now));
+};
 
 const openStoredFile = async (fileId) => {
   const record = await getFile(fileId);
@@ -806,155 +849,524 @@ const openStoredFile = async (fileId) => {
 
 {w.title === "Course Folders" && (
   <div className="course-folders-content">
+    {/* Create folder */}
     <div className="folder-create-row">
-      <input
-        type="text"
-        placeholder="New course folder (e.g. CS 4200)"
-        value={activeWidgetId === w.instanceId ? newFolderName : newFolderName}
-        onChange={(e) => setNewFolderName(e.target.value)}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
+      <div className="folder-input-wrapper">
+        <span className="folder-input-icon">📁</span>
+        <input
+          type="text"
+          placeholder="New course folder..."
+          value={newFolderName}
+          onChange={(e) => setNewFolderName(e.target.value)}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && newFolderName.trim()) {
+              addFolder(w.instanceId, newFolderName);
+            }
+          }}
+        />
+      </div>
+
       <button
+        className="create-folder-btn"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           addFolder(w.instanceId, newFolderName);
         }}
       >
-        + Folder
+        <span>+</span>
+        New Folder
       </button>
     </div>
 
+    {/* Folder list */}
     <div className="folder-list">
-      {(w.folders || []).map((folder) => (
-        <div key={folder.id} className="course-folder">
-          <div
-            className="folder-header"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveFolderId(activeFolderId === folder.id ? null : folder.id);
-            }}
-          >
-            <span> {folder.name} ({folder.files.length})</span>
+      {(w.folders || []).length === 0 ? (
+        <div className="empty-folders">
+          <div className="empty-folder-icon">📂</div>
+          <div className="empty-folder-title">No course folders yet</div>
+          <div className="empty-folder-subtitle">
+            Create a folder to organize your course files.
+          </div>
+        </div>
+      ) : (
+        (w.folders || []).map((folder) => {
+          const isOpen = activeFolderId === folder.id;
+
+          return (
+            <div
+              key={folder.id}
+              className={`course-folder ${isOpen ? "folder-open" : ""}`}
+            >
+              {/* Folder header */}
+              <div
+                className="folder-header"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveFolderId(
+                    activeFolderId === folder.id ? null : folder.id
+                  );
+                }}
+              >
+                <div className="folder-info">
+                  <div className="folder-icon">
+                    {isOpen ? "📂" : "📁"}
+                  </div>
+
+                  <div className="folder-text">
+                    <span className="folder-name">{folder.name}</span>
+                    <span className="folder-count">
+                      {folder.files.length}{" "}
+                      {folder.files.length === 1 ? "file" : "files"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="folder-actions">
+                  <span className={`folder-chevron ${isOpen ? "open" : ""}`}>
+                    ›
+                  </span>
+
+                  <button
+                    className="delete-folder-btn"
+                    title="Delete folder"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteFolder(w.instanceId, folder.id);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Folder contents */}
+              {isOpen && (
+                <div className="folder-body">
+                  {/* Upload area */}
+                  <label
+                    className="folder-upload-area"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="upload-icon">↑</div>
+
+                    <div className="upload-text">
+                      <strong>Upload files</strong>
+                      <span>Drop files here or click to browse</span>
+                    </div>
+
+                    <input
+                      type="file"
+                      multiple
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        if (e.target.files.length) {
+                          uploadFilesToFolder(
+                            w.instanceId,
+                            folder.id,
+                            e.target.files
+                          );
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {/* Files */}
+                  {folder.files.length > 0 ? (
+                    <div className="folder-files-list">
+                      <div className="files-section-label">
+                        Files
+                      </div>
+
+                      {folder.files.map((file) => (
+                        <div
+                          key={file.id}
+                          className="folder-file-row"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <div
+                            className="file-main"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openStoredFile(file.id);
+                            }}
+                          >
+                            <div className="file-icon">📄</div>
+
+                            <div className="file-info">
+                              <span className="file-name">
+                                {file.name}
+                              </span>
+                              <span className="file-action-hint">
+                                Click to open
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            className="remove-file-btn"
+                            title="Remove file"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFileFromFolder(
+                                w.instanceId,
+                                folder.id,
+                                file.id
+                              );
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-folder-files">
+                      <span>📄</span>
+                      <p>This folder is empty</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  </div>
+)}
+
+{w.title === "Calendar" && (
+  <div className="calendar-widget-content">
+
+    {/* Add event */}
+    <div className="calendar-add-event">
+      <input
+        type="text"
+        placeholder="Event or deadline title"
+        value={calendarTitle}
+        onChange={(e) => setCalendarTitle(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}
+      />
+
+      <input
+        type="date"
+        value={calendarDate}
+        onChange={(e) => setCalendarDate(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}
+      />
+
+      <button
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+
+          if (!calendarTitle.trim() || !calendarDate) return;
+
+          setPlacedWidgets((prev) =>
+            prev.map((widget) =>
+              widget.instanceId === w.instanceId
+                ? {
+                    ...widget,
+                    events: [
+                      ...(widget.events || []),
+                      {
+                        id: crypto.randomUUID(),
+                        title: calendarTitle.trim(),
+                        date: calendarDate
+                      }
+                    ]
+                  }
+                : widget
+            )
+          );
+
+          setCalendarTitle("");
+          setCalendarDate("");
+        }}
+      >
+        + Add Event
+      </button>
+    </div>
+
+    {/* Calendar */}
+    <div className="mini-calendar">
+
+      {/* Month header */}
+      <div className="calendar-header">
+        <button
+          className="calendar-nav-btn"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            changeCalendarMonth(-1);
+          }}
+        >
+          ‹
+        </button>
+
+        <div className="calendar-month-title">
+          <strong>
+            {calendarViewDate.toLocaleString("default", {
+              month: "long"
+            })}
+          </strong>
+
+          <span>
+            {calendarViewDate.getFullYear()}
+          </span>
+        </div>
+
+        <button
+          className="calendar-nav-btn"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            changeCalendarMonth(1);
+          }}
+        >
+          ›
+        </button>
+      </div>
+
+      {/* Today */}
+      <button
+        className="calendar-today-btn"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          goToCalendarToday();
+        }}
+      >
+        Today
+      </button>
+
+      {/* Weekdays */}
+      <div className="calendar-weekdays">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+          (day) => (
+            <div
+              key={day}
+              className="calendar-weekday"
+            >
+              {day}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Calendar days */}
+      <div className="calendar-grid">
+
+        {/* Empty spaces before first day */}
+        {Array.from(
+          {
+            length: new Date(
+              calendarViewDate.getFullYear(),
+              calendarViewDate.getMonth(),
+              1
+            ).getDay()
+          },
+          (_, index) => (
+            <div
+              key={`empty-${index}`}
+              className="calendar-day empty"
+            />
+          )
+        )}
+
+        {/* Actual days */}
+        {Array.from(
+          {
+            length: new Date(
+              calendarViewDate.getFullYear(),
+              calendarViewDate.getMonth() + 1,
+              0
+            ).getDate()
+          },
+          (_, index) => {
+            const day = index + 1;
+
+            const date = new Date(
+              calendarViewDate.getFullYear(),
+              calendarViewDate.getMonth(),
+              day
+            );
+
+            const dateKey = formatCalendarDate(date);
+
+            const dayEvents = getCalendarEventsForDate(
+              w.events,
+              date
+            );
+
+            const hasEvents = dayEvents.length > 0;
+
+            const todayKey = formatCalendarDate(
+              new Date()
+            );
+
+            const isToday = dateKey === todayKey;
+
+            const isSelected =
+              selectedCalendarDate === dateKey;
+
+            const isHovered =
+              hoveredCalendarDate === dateKey;
+
+            return (
+              <div
+                key={dateKey}
+                className={[
+                  "calendar-day",
+                  isToday ? "today" : "",
+                  hasEvents ? "has-events" : "",
+                  isSelected ? "selected" : ""
+                ].join(" ")}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseEnter={() => {
+                  if (hasEvents) {
+                    setHoveredCalendarDate(dateKey);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setHoveredCalendarDate(null);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  setSelectedCalendarDate(
+                    isSelected ? null : dateKey
+                  );
+                }}
+              >
+
+                {/* Day number */}
+                <span className="calendar-day-number">
+                  {day}
+                </span>
+
+                {/* Small event indicator */}
+                {hasEvents && (
+                  <span className="calendar-event-dot" />
+                )}
+
+                {/* Hover event details */}
+                {isHovered && hasEvents && (
+                  <div
+                    className="calendar-event-tooltip"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <div className="tooltip-date">
+                      {date.toLocaleDateString("default", {
+                        month: "short",
+                        day: "numeric"
+                      })}
+                    </div>
+
+                    {dayEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="tooltip-event"
+                      >
+                        <span className="tooltip-event-dot" />
+                        <span>{event.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              </div>
+            );
+          }
+        )}
+
+      </div>
+
+      {/* Selected date details */}
+      {selectedCalendarDate && (
+        <div className="selected-date-events">
+
+          <div className="selected-date-header">
+            <div>
+              <span className="selected-date-label">
+                Events
+              </span>
+
+              <strong>
+                {new Date(
+                  `${selectedCalendarDate}T00:00:00`
+                ).toLocaleDateString("default", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric"
+                })}
+              </strong>
+            </div>
+
             <button
-              className="delete-folder-btn"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
-                deleteFolder(w.instanceId, folder.id);
+                setSelectedCalendarDate(null);
               }}
             >
-           x
+              ×
             </button>
           </div>
 
-          {activeFolderId === folder.id && (
-            <div className="folder-body">
-              <input
-                type="file"
-                multiple
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  if (e.target.files.length) {
-                    uploadFilesToFolder(w.instanceId, folder.id, e.target.files);
-                    e.target.value = ""; // allow re-uploading same filename
-                  }
-                }}
-              />
+          {getCalendarEventsForDate(
+            w.events,
+            new Date(`${selectedCalendarDate}T00:00:00`)
+          ).length > 0 ? (
 
-              <div className="folder-files-list">
-                {folder.files.map((file) => (
-                  <div key={file.id} className="folder-file-row">
-                    <span
-                      className="file-name"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openStoredFile(file.id);
-                      }}
-                    >
-                      {file.name}
-                    </span>
-                    <button
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFileFromFolder(w.instanceId, folder.id, file.id);
-                      }}
-                    >
-                      ×
-                    </button>
+            <div className="selected-events-list">
+
+              {getCalendarEventsForDate(
+                w.events,
+                new Date(`${selectedCalendarDate}T00:00:00`)
+              ).map((event) => (
+
+                <div
+                  key={event.id}
+                  className="selected-event"
+                >
+                  <span className="selected-event-dot" />
+
+                  <div className="selected-event-info">
+                    <strong>{event.title}</strong>
+                    <span>{event.date}</span>
                   </div>
-                ))}
-              </div>
+                </div>
+
+              ))}
+
             </div>
+
+          ) : (
+
+            <div className="no-events-message">
+              No events scheduled for this date.
+            </div>
+
           )}
+
         </div>
-      ))}
+      )}
+
     </div>
   </div>
 )}
-{w.title === "Calendar" && (
-  <div className="calendar-widget-content">
-    <input
-      type="text"
-      placeholder="Event or deadline title"
-      value={calendarTitle}
-      onChange={(e) => setCalendarTitle(e.target.value)}
-      onMouseDown={(e) => e.stopPropagation()}
-    />
 
-    <input
-      type="date"
-      value={calendarDate}
-      onChange={(e) => setCalendarDate(e.target.value)}
-      onMouseDown={(e) => e.stopPropagation()}
-    />
 
-    <button
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
 
-        if (!calendarTitle.trim() || !calendarDate) return;
-
-        setPlacedWidgets((prev) =>
-          prev.map((widget) =>
-            widget.instanceId === w.instanceId
-              ? {
-                  ...widget,
-                  events: [
-                    ...(widget.events || []),
-                    {
-                      id: crypto.randomUUID(),
-                      title: calendarTitle,
-                      date: calendarDate
-                    }
-                  ]
-                }
-              : widget
-          )
-        );
-
-        setCalendarTitle("");
-        setCalendarDate("");
-      }}
-    >
-      Add Event
-    </button>
-
-    <div className="calendar-events-list">
-      {(w.events || []).map((event) => (
-        <div key={event.id} className="calendar-event-card">
-          <strong>{event.title}</strong>
-          <span>{event.date}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
 {w.title === "AI Flashcards" && (
   <div className="ai-notes-content">
     {!w.studyMaterial ? (
