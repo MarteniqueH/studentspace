@@ -27,7 +27,7 @@ This array defines all widgets currently available in the widget menu
 */
 
 const widgets = [
-  {
+  { 
     id: 1,
     icon: <HiOutlineFolderOpen />,
     title: "Course Folders",
