@@ -27,7 +27,7 @@ This array defines all widgets currently available in the widget menu
 */
 
 const widgets = [
-  {
+  { 
     id: 1,
     icon: <HiOutlineFolderOpen />,
     title: "Course Folders",
@@ -1466,7 +1466,7 @@ const openStoredFile = async (fileId) => {
     initial placement, until confirmed. */}
             {isWidgetEditable(w.instanceId) && (
               <div className="size-controls">
-                {["small", "medium", "large"].map((size) => (
+                {[ "medium", "large"].map((size) => (
                   <button
                     key={size}
                     onClick={(e) => {
@@ -1480,7 +1480,7 @@ const openStoredFile = async (fileId) => {
                       );
                     }}
                   >
-                    {size[0].toUpperCase()}
+                    {size[0].toUpperCase() + size.slice(1)}
                   </button>
                 ))}
               </div>
